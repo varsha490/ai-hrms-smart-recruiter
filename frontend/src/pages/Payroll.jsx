@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-const API = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+const API = import.meta.env.VITE_API_URL || 'https://ai-hrms-smart-recruiter.onrender.com';
 const authHeaders = () => ({ 'Authorization': `Bearer ${localStorage.getItem('token')}`, 'Content-Type': 'application/json' });
 
 export default function Payroll() {
