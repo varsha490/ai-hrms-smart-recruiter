@@ -1,17 +1,17 @@
 # Python
-venv/
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+venv/
+.env
 
 # Node
 node_modules/
+dist/
+dist-ssr/
+*.local
 
-# Env files
-.env
-
-# VS Code / tools
-.cursor/
+# IDE
 .vscode/
-
-# OS files
+.idea/
 .DS_Store
