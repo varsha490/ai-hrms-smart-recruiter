@@ -1,157 +1,102 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 
-const API = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
-const authHeaders = () => ({ 'Authorization': `Bearer ${localStorage.getItem('token')}`, 'Content-Type': 'application/json' });
-
-export default function Employees() {
-  const [employees, setEmployees] = useState([]);
-  const [loading, setLoading] = useState(true);
+export default function Login({ setToken }) {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  const [submitting, setSubmitting] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
-  useEffect(() => { fetchEmployees(); }, []);
-
-  const fetchEmployees = async () => {
-    try {
-      const res = await fetch(`${API}/employees/`, { headers: authHeaders() });
-      if (!res.ok) throw new Error('Failed to fetch employees');
-      const data = await res.json();
-      setEmployees(data.employees || []);
-    } catch (err) { setError(err.message); }
-    finally { setLoading(false); }
-  };
-
-  const handleAdd = async (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    setSubmitting(true); setSuccess(''); setError('');
-    const form = e.target;
-    const employee = { name: form.name.value, email: form.email.value, department: form.department.value, role: form.role.value };
+    setLoading(true);
+    setError('');
     try {
-      const res = await fetch(`${API}/employees/`, { method: 'POST', headers: authHeaders(), body: JSON.stringify(employee) });
-      if (!res.ok) throw new Error('Failed to add employee');
-      setSuccess('Employee added successfully!');
-      form.reset();
-      await fetchEmployees();
-      setTimeout(() => setSuccess(''), 3000);
-    } catch (err) { setError(err.message); }
-    finally { setSubmitting(false); }
-  };
+      const formData = new URLSearchParams();
+      formData.append('username', username);
+      formData.append('password', password);
 
-  const deptColors = {
-    Engineering: 'rgba(79,142,247,0.15)', HR: 'rgba(34,211,160,0.15)',
-    Marketing: 'rgba(245,166,35,0.15)', Finance: 'rgba(139,92,246,0.15)',
-    Sales: 'rgba(245,83,106,0.15)',
-  };
+      const apiUrl = import.meta.env.VITE_API_URL || 'https://ai-hrms-smart-recruiter.onrender.com';
 
-  if (loading) return <div className="loading-screen"><div className="spinner" />Loading employees...</div>;
+      const response = await fetch(`${apiUrl}/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: formData,
+      });
+
+      const text = await response.text();
+      let data = null;
+      try { data = JSON.parse(text); } catch (_) { data = null }
+
+      if (!response.ok) {
+        const detail = data?.detail || text || 'Invalid credentials';
+        console.error('Login failed:', response.status, detail);
+        throw new Error(detail);
+      }
+
+      const token = data?.access_token || text;
+      localStorage.setItem('token', token);
+      setToken(token);
+      navigate('/');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div>
-      <div className="page-header">
-        <div>
-          <h1>Employee Directory</h1>
-          <p>Manage your organization's talent — {employees.length} employee{employees.length !== 1 ? 's' : ''}</p>
-        </div>
-      </div>
-
-      {success && <div className="success-banner">✅ {success}</div>}
-      {error && <div className="error-banner">⚠️ {error}</div>}
-
-      {/* Stats */}
-      <div className="grid-cards" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', marginBottom: '1.5rem' }}>
-        <div className="stat-card">
-          <div className="stat-card-icon" style={{ background: 'rgba(79,142,247,0.15)' }}>👥</div>
-          <div className="stat-card-title">Total Employees</div>
-          <div className="stat-card-value">{employees.length}</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-card-icon" style={{ background: 'rgba(34,211,160,0.15)' }}>🏢</div>
-          <div className="stat-card-title">Departments</div>
-          <div className="stat-card-value">{new Set(employees.map(e => e.department)).size}</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-card-icon" style={{ background: 'rgba(245,166,35,0.15)' }}>💼</div>
-          <div className="stat-card-title">Unique Roles</div>
-          <div className="stat-card-value">{new Set(employees.map(e => e.role)).size}</div>
-        </div>
-      </div>
-
-      {/* Add Employee Form */}
-      <div className="panel" style={{ borderColor: 'var(--border-accent)' }}>
-        <div className="panel-title">
-          <div className="panel-title-icon" style={{ background: 'rgba(79,142,247,0.15)' }}>➕</div>
-          Add New Employee
-        </div>
-        <form onSubmit={handleAdd}>
-          <div className="form-grid">
-            <div className="form-group">
-              <label>Full Name</label>
-              <input name="name" required placeholder="Jane Smith" />
-            </div>
-            <div className="form-group">
-              <label>Email</label>
-              <input name="email" type="email" required placeholder="jane@company.com" />
-            </div>
-            <div className="form-group">
-              <label>Department</label>
-              <input name="department" required placeholder="Engineering" />
-            </div>
-            <div className="form-group">
-              <label>Role / Position</label>
-              <input name="role" required placeholder="Senior Developer" />
-            </div>
-            <div className="form-group" style={{ justifyContent: 'flex-end' }}>
-              <label>&nbsp;</label>
-              <button type="submit" disabled={submitting}>{submitting ? 'Adding...' : '+ Add Employee'}</button>
-            </div>
+    <div className="auth-page">
+      <div className="auth-card">
+        <div className="auth-logo">
+          <div className="auth-logo-icon">🧠</div>
+          <div>
+            <div style={{ fontWeight: 800, fontSize: '1.1rem', letterSpacing: '-0.02em' }}>SmartRecruiter</div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>AI HRMS Platform</div>
           </div>
+        </div>
+
+        <h1>Welcome back</h1>
+        <p>Sign in to your account to continue</p>
+
+        {error && <div className="error-banner">⚠️ {error}</div>}
+
+        <form onSubmit={handleLogin}>
+          <div className="form-group">
+            <label>Username</label>
+            <input
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="Enter your username"
+              required
+              autoFocus
+            />
+          </div>
+          <div className="form-group">
+            <label>Password</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Enter your password"
+              required
+            />
+          </div>
+          <button type="submit" disabled={loading} className="btn-full" style={{ marginTop: '0.5rem' }}>
+            {loading ? <><span className="spinner" style={{ width: 18, height: 18, borderWidth: 2 }} /> Signing in...</> : '→ Sign In'}
+          </button>
         </form>
-      </div>
 
-      {/* Table */}
-      <div className="table-container">
-        {employees.length === 0 ? (
-          <div className="empty-state">
-            <div className="empty-state-icon">👤</div>
-            <h3>No employees yet</h3>
-            <p>Add your first employee using the form above</p>
-          </div>
-        ) : (
-          <table>
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Employee</th>
-                <th>Department</th>
-                <th>Role</th>
-                <th>Email</th>
-              </tr>
-            </thead>
-            <tbody>
-              {employees.map((emp, i) => (
-                <tr key={emp._id}>
-                  <td style={{ color: 'var(--text-muted)', width: 40 }}>{i + 1}</td>
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'linear-gradient(135deg, var(--accent), #8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.85rem', flexShrink: 0 }}>
-                        {emp.name?.[0]?.toUpperCase()}
-                      </div>
-                      <div style={{ fontWeight: 500 }}>{emp.name}</div>
-                    </div>
-                  </td>
-                  <td>
-                    <span style={{ padding: '3px 10px', borderRadius: 6, fontSize: '0.78rem', fontWeight: 600, background: deptColors[emp.department] || 'rgba(255,255,255,0.08)', color: 'var(--text-primary)' }}>
-                      {emp.department}
-                    </span>
-                  </td>
-                  <td><span className="badge badge-role">{emp.role}</span></td>
-                  <td style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{emp.email}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+        <div style={{ marginTop: '1rem', textAlign: 'center', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+          Don't have an account? <Link to="/register">Create one →</Link>
+        </div>
+
+        <div style={{ marginTop: '1.5rem', padding: '1rem', background: 'var(--bg-card)', borderRadius: 10, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+          <strong style={{ color: 'var(--accent)' }}>Demo credentials:</strong><br />
+          Username: <code style={{ color: 'var(--text-primary)' }}>testuser</code> &nbsp;|&nbsp; Password: <code style={{ color: 'var(--text-primary)' }}>password123</code>
+        </div>
       </div>
     </div>
   );
