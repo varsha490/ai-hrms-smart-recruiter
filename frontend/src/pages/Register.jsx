@@ -16,14 +16,18 @@ export default function Register() {
     setError('');
     setSuccess('');
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+      // ✅ FIXED HERE
+      const apiUrl = import.meta.env.VITE_API_URL || 'https://ai-hrms-smart-recruiter.onrender.com';
+
       const response = await fetch(`${apiUrl}/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
       });
+
       const data = await response.json();
       if (!response.ok) throw new Error(data.detail || 'Registration failed');
+
       setSuccess('Account created! Redirecting to login...');
       setTimeout(() => navigate('/login'), 1800);
     } catch (err) {
