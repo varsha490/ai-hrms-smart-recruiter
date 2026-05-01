@@ -16,21 +16,26 @@ export default function Login({ setToken }) {
       const formData = new URLSearchParams();
       formData.append('username', username);
       formData.append('password', password);
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+
+      // ✅ FIXED HERE
+      const apiUrl = import.meta.env.VITE_API_URL || 'https://ai-hrms-smart-recruiter.onrender.com';
+
       const response = await fetch(`${apiUrl}/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: formData,
       });
+
       const text = await response.text();
       let data = null;
       try { data = JSON.parse(text); } catch (_) { data = null }
+
       if (!response.ok) {
         const detail = data?.detail || text || 'Invalid credentials';
         console.error('Login failed:', response.status, detail);
         throw new Error(detail);
       }
-      // store raw token string in localStorage and update App's token
+
       const token = data?.access_token || text;
       localStorage.setItem('token', token);
       setToken(token);
